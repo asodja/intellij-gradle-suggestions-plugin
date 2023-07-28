@@ -1,38 +1,22 @@
 package com.github.asodja.intellijgradlesuggestionsplugin
 
-import com.intellij.ide.highlighter.XmlFileType
-import com.intellij.openapi.components.service
-import com.intellij.psi.xml.XmlFile
+import com.github.asodja.intellij.codeinspector.ConfigurationCacheInspector
 import com.intellij.testFramework.TestDataPath
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import com.intellij.util.PsiErrorElementUtil
-import com.github.asodja.intellijgradlesuggestionsplugin.services.MyProjectService
+import org.junit.Assert
 
 @TestDataPath("\$CONTENT_ROOT/src/test/testData")
 class MyPluginTest : BasePlatformTestCase() {
 
-    fun testXMLFile() {
-        val psiFile = myFixture.configureByText(XmlFileType.INSTANCE, "<foo>bar</foo>")
-        val xmlFile = assertInstanceOf(psiFile, XmlFile::class.java)
-
-        assertFalse(PsiErrorElementUtil.hasErrors(project, xmlFile.virtualFile))
-
-        assertNotNull(xmlFile.rootTag)
-
-        xmlFile.rootTag?.let {
-            assertEquals("foo", it.name)
-            assertEquals("bar", it.value.text)
-        }
+    private fun setup() {
+        myFixture.configureByFile("TestFile.kt")
+        myFixture.enableInspections(ConfigurationCacheInspector())
     }
 
-    fun testRename() {
-        myFixture.testRename("foo.xml", "foo_after.xml", "a2")
-    }
-
-    fun testProjectService() {
-        val projectService = project.service<MyProjectService>()
-
-        assertNotSame(projectService.getRandomNumber(), projectService.getRandomNumber())
+    fun testProblemsAreHighlighted() {
+        setup()
+        val highlights = myFixture.doHighlighting()
+        Assert.assertFalse(highlights.isEmpty())
     }
 
     override fun getTestDataPath() = "src/test/testData/rename"

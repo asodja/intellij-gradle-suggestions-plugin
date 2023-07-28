@@ -1,24 +1,24 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
     <id>com.github.asodja.intellijgradlesuggestionsplugin</id>
-    <name>intellij-gradle-suggestions-plugin Template</name>
+    <name>intellij-gradle-suggestions-plugin</name>
     <vendor>asodja</vendor>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends>org.jetbrains.kotlin</depends>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <toolWindow factoryClass="com.github.asodja.intellijgradlesuggestionsplugin.toolWindow.MyToolWindowFactory" id="MyToolWindow"/>
+        <localInspection
+                language="kotlin"
+                groupPath="Kotlin"
+                groupBundle="messages.InspectionsBundle"
+                groupKey="group.names.probable.bugs"
+                enabledByDefault="true"
+                implementationClass="com.github.asodja.intellij.codeinspector.ConfigurationCacheInspector"
+                displayName="Suggestions for Configuration Cache"
+                shortName="ConfigurationCacheSuggestions"
+                runForWholeFile="true" />
     </extensions>
-
-    <applicationListeners>
-        <listener class="com.github.asodja.intellijgradlesuggestionsplugin.listeners.MyApplicationActivationListener" topic="com.intellij.openapi.application.ApplicationActivationListener"/>
-    </applicationListeners>
-    
-    <actions>
-        <action class="com.github.asodja.intellijgradlesuggestionsplugin.MyAction" id="MyAction">
-            <add-to-group group-id="StructureViewPopupMenu" />
-        </action>
-    </actions>
 </idea-plugin>
