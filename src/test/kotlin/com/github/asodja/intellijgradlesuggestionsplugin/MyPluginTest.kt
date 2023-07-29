@@ -9,7 +9,9 @@ import org.junit.Assert
 class MyPluginTest : BasePlatformTestCase() {
 
     private fun setup() {
-        myFixture.configureByFile("TestFile.kt")
+        val file = myFixture.copyFileToProject("build.gradle.kts", "build.gradle.kts")
+        myFixture.copyFileToProject("settings.gradle.kts", "settings.gradle.kts")
+        myFixture.configureFromExistingVirtualFile(file)
         myFixture.enableInspections(ConfigurationCacheInspector())
     }
 

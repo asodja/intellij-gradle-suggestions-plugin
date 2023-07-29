@@ -3,11 +3,16 @@ package com.github.asodja.intellij.codeinspector
 import com.intellij.codeInspection.ProblemHighlightType
 import com.intellij.codeInspection.ProblemsHolder
 import org.jetbrains.kotlin.idea.base.utils.fqname.fqName
+import org.jetbrains.kotlin.idea.caches.resolve.analyze
+import org.jetbrains.kotlin.idea.caches.resolve.resolveToCall
 import org.jetbrains.kotlin.idea.codeinsight.api.classic.inspections.AbstractKotlinInspection
 import org.jetbrains.kotlin.idea.core.resolveType
+import org.jetbrains.kotlin.idea.intentions.receiverType
 import org.jetbrains.kotlin.idea.structuralsearch.resolveReceiverType
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.psi.*
+import org.jetbrains.kotlin.resolve.calls.util.getResolvedCall
+import org.jetbrains.kotlin.resolve.lazy.BodyResolveMode
 
 @Suppress("InspectionDescriptionNotFoundInspection")
 class ConfigurationCacheInspector : AbstractKotlinInspection() {
@@ -22,6 +27,9 @@ class ConfigurationCacheInspector : AbstractKotlinInspection() {
 
         val alreadyReported = mutableSetOf<KtExpression>()
         return this.callExpressionRecursiveVisitor { expression: KtReferenceExpression ->
+            if (alreadyReported.contains(expression)) {
+                return@callExpressionRecursiveVisitor
+            }
             val problem = getConfigurationCacheProblem(expression)
             if (problem != null && alreadyReported.add(expression)) {
                 holder.registerProblem(expression, problem, ProblemHighlightType.GENERIC_ERROR_OR_WARNING)
@@ -31,11 +39,14 @@ class ConfigurationCacheInspector : AbstractKotlinInspection() {
 
     private
     fun getConfigurationCacheProblem(expression: KtReferenceExpression): String? {
-        val fqName = expression.resolveReceiverType()?.fqName
+        val receiver = when (val result = expression.resolveReceiverType()?.fqName) {
+            null -> expression.resolveToCall(BodyResolveMode.PARTIAL)?.call?.getResolvedCall(expression.analyze(BodyResolveMode.PARTIAL))?.resultingDescriptor?.receiverType()?.fqName
+            else -> result
+        }
         val type = expression.resolveType()?.fqName
-        return if (fqName == FqName("Build_gradle")) {
+        return if (receiver == FqName("Build_gradle")) {
             "Reference to Build_gradle, not compatible with cc"
-        } else if (fqName == FqName("org.gradle.kotlin.dsl.support.delegates.ProjectDelegate")) {
+        } else if (receiver == FqName("org.gradle.kotlin.dsl.support.delegates.ProjectDelegate")) {
             "Reference to ProjectDelegate, not compatible with cc"
         } else if (type == FqName("org.gradle.api.Project")) {
             "Type 'org.gradle.api.Project' is a not serializable with cc"
