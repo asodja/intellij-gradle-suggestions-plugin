@@ -17,8 +17,8 @@
                 groupKey="group.names.probable.bugs"
                 enabledByDefault="true"
                 implementationClass="com.github.asodja.intellij.codeinspector.ConfigurationCacheInspector"
-                displayName="Suggestions for Configuration Cache"
-                shortName="ConfigurationCacheSuggestions"
+                displayName="Inspections for Configuration Cache"
+                shortName="ConfigurationCacheInspection"
                 runForWholeFile="true" />
     </extensions>
 </idea-plugin>
