@@ -45,6 +45,9 @@ class ConfigurationCacheInspector : AbstractKotlinInspection() {
             val problems = getConfigurationCacheProblem(context, expression)
             if (context.isInDeclaration && !context.isInExecutionBlock) {
                 context.configurationDeclarationData[context.declaration]?.problems?.addAll(problems)
+                context.variableDeclaration?.let {
+                    context.configurationDeclarationData[it]?.problems?.addAll(problems)
+                }
             } else if (context.isInExecutionBlock && problems.isNotEmpty() && context.alreadyReported.add(expression)) {
                 problems.filter { it.originalExpression != expression }.forEach {
                     if (context.alreadyReported.add(it.originalExpression)) {
@@ -68,10 +71,9 @@ class ConfigurationCacheInspector : AbstractKotlinInspection() {
 
         if (context.isInVariableDeclaration
                 && !context.isInExecutionBlock
-                && !expression.isDeclaredInCallableBlockInVariableDeclaration(context)
-                && receiver?.fqName == FqName("Build_gradle")) {
+                && !expression.isDeclaredInCallableBlockInVariableDeclaration(context)) {
             val reference = expression.mainReference.resolve()
-            if (context.configurationDeclarations.contains(reference)) {
+            if (expression.parent !is KtCallExpression && context.configurationDeclarations.contains(reference)) {
                 // TODO: Figure out a better way to handle this. This doesn't work correctly all the time, e.g.:
                 //  it shows errors on reference, although potential problem is on a callable
                 // Handle case when we have a reference to Build_gradle and we deference it, e.g.
@@ -164,7 +166,7 @@ class ConfigurationCacheInspector : AbstractKotlinInspection() {
                     val previousDeclaration = context.declaration
                     context.declaration = expression
                     val previousVariableDeclaration = context.variableDeclaration
-                    if (expression is KtVariableDeclaration) {
+                    if (expression is KtProperty && expression.isLocal && !context.isInVariableDeclaration) {
                         context.variableDeclaration = expression
                     }
                     if (context.isInExecutionBlock) {

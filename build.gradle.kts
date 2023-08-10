@@ -18,12 +18,22 @@ version = properties("pluginVersion").get()
 
 // Configure project's dependencies
 repositories {
-    mavenCentral()
+    repositories {
+        mavenCentral()
+        maven {
+            url = uri("https://www.jetbrains.com/intellij-repository/releases")
+        }
+        maven {
+            url = uri("https://cache-redirector.jetbrains.com/intellij-dependencies")
+        }
+    }
 }
 
 // Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
-//    implementation(libs.annotations)
+    testImplementation("com.jetbrains.intellij.platform:external-system-test-framework:232.8660.185") {
+        isTransitive = false
+    }
 }
 
 // Set the JVM language level used to build the project. Use Java 11 for 2020.3+, and Java 17 for 2022.2+.
@@ -36,7 +46,7 @@ intellij {
     pluginName = properties("pluginName")
     version = properties("platformVersion")
     type = properties("platformType")
-    plugins = listOf("Kotlin")
+    plugins = listOf("Kotlin", "gradle", "android")
 }
 
 // Configure Gradle Changelog Plugin - read more: https://github.com/JetBrains/gradle-changelog-plugin

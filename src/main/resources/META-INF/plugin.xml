@@ -6,6 +6,8 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>org.jetbrains.kotlin</depends>
+    <depends>org.jetbrains.plugins.gradle</depends>
+    <depends>org.jetbrains.android</depends>
 
     <resource-bundle>messages.MyBundle</resource-bundle>
 
