@@ -1,6 +1,9 @@
 package com.github.asodja.intellijgradlesuggestionsplugin
 
 import com.intellij.lang.annotation.HighlightSeverity
+import org.assertj.core.api.Assertions
+import org.assertj.core.api.Assertions.assertThat
+import org.jetbrains.kotlin.idea.gradleTooling.get
 import org.junit.Test
 
 class ConfigurationCacheInspectorTest : KotlinGradleHighlightingTestCase() {
@@ -30,19 +33,15 @@ class ConfigurationCacheInspectorTest : KotlinGradleHighlightingTestCase() {
         importProject(false)
 
         val warnings = file.getHighlights().filter { it.severity == HighlightSeverity.WARNING }
-        assert(warnings.size == 3)
-        warnings[0].apply {
-            assert(text == "project")
-            assert(description.startsWith("Invocation of 'Task.project' by task at execution time is unsupported."))
-        }
-        warnings[1].apply {
-            assert(text == "extensions")
-            assert(description.startsWith("Invocation of 'Task.extensions' by task at execution time is unsupported."))
-        }
-        warnings[2].apply {
-            assert(text == "taskDependencies")
-            assert(description.startsWith("Invocation of 'Task.taskDependencies' by task at execution time is unsupported."))
-        }
+        assertThat(warnings).hasSize(3)
+        assertThat(warnings[0].text).isEqualTo("project")
+        assertThat(warnings[0].description).startsWith("Invocation of 'Task.project' by task at execution time is unsupported.")
+
+        assertThat(warnings[1].text).isEqualTo("extensions")
+        assertThat(warnings[1].description).startsWith("Invocation of 'Task.extensions' by task at execution time is unsupported.")
+
+        assertThat(warnings[2].text).isEqualTo("taskDependencies")
+        assertThat(warnings[2].description).startsWith("Invocation of 'Task.taskDependencies' by task at execution time is unsupported.")
     }
 
     @Test
@@ -107,6 +106,7 @@ class ConfigurationCacheInspectorTest : KotlinGradleHighlightingTestCase() {
         assert(warnings.isEmpty())
     }
 
+    @Test
     fun `test warnings for non-serializable types`() {
         val file = writeToFile("build.gradle.kts") {
             """
@@ -142,5 +142,61 @@ class ConfigurationCacheInspectorTest : KotlinGradleHighlightingTestCase() {
             assert(text == "config")
             assert(description.startsWith("Cannot serialize object of type 'org.gradle.api.artifacts.Configuration', as these are not supported with the configuration cache."))
         }
+    }
+
+    @Test
+    fun `test warnings for class declaration call methods`() {
+        val file = writeToFile("build.gradle.kts") {
+            """
+            tasks.register("myTask") {
+                val a = A()
+                doLast {
+                    a.run()
+                }
+            }
+            
+            class A {
+                fun run() {
+                    println(buildDir)
+                }
+            }
+            """.trimIndent()
+        }
+        importProject(false)
+
+        val warnings = file.getHighlights().filter { it.severity == HighlightSeverity.WARNING }
+        assert(warnings.size == 2)
+        assertThat(warnings).hasSize(2)
+        assertThat(warnings[0].text).isEqualTo("run")
+        assertThat(warnings[0].description).startsWith("Cannot serialize Gradle script object references as these are not supported with the configuration cache.")
+
+        assertThat(warnings[1].text).isEqualTo("buildDir")
+        assertThat(warnings[1].description).startsWith("Cannot serialize Gradle script object references as these are not supported with the configuration cache.")
+    }
+
+    @Test
+    fun `test warnings are not shown when method called outside execution block or when method has no problems`() {
+        val file = writeToFile("build.gradle.kts") {
+            """
+            tasks.register("myTask") {
+                val a = A()
+                a.run()
+                doLast {
+                    a.run2()
+                }
+            }
+            
+            class A {
+                fun run() {
+                    println(buildDir)
+                }
+                fun run2() {}
+            }
+            """.trimIndent()
+        }
+        importProject(false)
+
+        val warnings = file.getHighlights().filter { it.severity == HighlightSeverity.WARNING }
+        assertThat(warnings).isEmpty()
     }
 }

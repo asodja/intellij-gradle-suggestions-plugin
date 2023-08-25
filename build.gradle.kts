@@ -29,11 +29,11 @@ repositories {
     }
 }
 
-// Dependencies are managed with Gradle version catalog - read more: https://docs.gradle.org/current/userguide/platforms.html#sub:version-catalog
 dependencies {
     testImplementation("com.jetbrains.intellij.platform:external-system-test-framework:232.8660.185") {
         isTransitive = false
     }
+    testImplementation("org.assertj:assertj-core:3.24.2")
 }
 
 // Set the JVM language level used to build the project. Use Java 11 for 2020.3+, and Java 17 for 2022.2+.
