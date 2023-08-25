@@ -87,6 +87,15 @@ class ExecutionBlockVisitor(private val context: ExecutionLikeContext) : KtTreeV
         } else if (reference?.isConfigurationDeclarationAndHasConfigurationCacheProblems(context) == true) {
             // Bubble up problems from methods declared in the configuration block and used at execution time
             return context.configurationDeclarations[reference]?.problems?.toList() ?: emptyList()
+        } else if (reference is KtProperty && reference.isLocal) {
+            // Bubble up problems from lambdas declared in the configuration block and used at execution time
+            // val v: () -> T = { // Body } or
+            // val v = Runnable { // Body }, but not
+            // val v = method { // Body }
+            val property = reference.resolveProperty()
+            if (property.isConfigurationDeclarationAndHasConfigurationCacheProblems(context)) {
+                return context.configurationDeclarations[property]?.problems?.toList() ?: emptyList()
+            }
         }
 
         val type = expression.resolveType()
@@ -97,6 +106,25 @@ class ExecutionBlockVisitor(private val context: ExecutionLikeContext) : KtTreeV
             return listOf(Problem(expression, "Accessing non-serializable type '${type?.fqName}' caused by invocation. These are not supported with the configuration cache.", isPotentialError = isNullableType))
         }
         return emptyList()
+    }
+
+    /**
+     * "Resolves" property, meaning that it finds root of expression, e.g.:
+     * val a = <expression>
+     * val b = a
+     * So when we call b.resolveProperty(), we get a
+     */
+    private
+    fun KtProperty.resolveProperty(): KtProperty {
+        var property = this
+        do {
+            val reference = property.children.firstOrNull { it is KtNameReferenceExpression } as? KtNameReferenceExpression
+            if (reference != null) {
+                reference.mainReference.resolve() as? KtProperty ?: break
+                property = reference.mainReference.resolve() as KtProperty
+            }
+        } while (reference != null)
+        return property
     }
 
     private

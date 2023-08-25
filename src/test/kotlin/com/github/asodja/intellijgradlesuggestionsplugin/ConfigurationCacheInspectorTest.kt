@@ -1,11 +1,12 @@
 package com.github.asodja.intellijgradlesuggestionsplugin
 
 import com.intellij.lang.annotation.HighlightSeverity
-import org.assertj.core.api.Assertions
 import org.assertj.core.api.Assertions.assertThat
-import org.jetbrains.kotlin.idea.gradleTooling.get
 import org.junit.Test
 
+/**
+ * TODO: Implement custom assertions and make tests a bit nicer
+ */
 class ConfigurationCacheInspectorTest : KotlinGradleHighlightingTestCase() {
 
     override fun setUp() {
@@ -165,7 +166,6 @@ class ConfigurationCacheInspectorTest : KotlinGradleHighlightingTestCase() {
         importProject(false)
 
         val warnings = file.getHighlights().filter { it.severity == HighlightSeverity.WARNING }
-        assert(warnings.size == 2)
         assertThat(warnings).hasSize(2)
         assertThat(warnings[0].text).isEqualTo("run")
         assertThat(warnings[0].description).startsWith("Cannot serialize Gradle script object references as these are not supported with the configuration cache.")
@@ -198,5 +198,84 @@ class ConfigurationCacheInspectorTest : KotlinGradleHighlightingTestCase() {
 
         val warnings = file.getHighlights().filter { it.severity == HighlightSeverity.WARNING }
         assertThat(warnings).isEmpty()
+    }
+
+    @Test
+    fun `test warnings are shown for simple lambda references`() {
+        val file = writeToFile("build.gradle.kts") {
+            """
+            val a = Runnable { println(buildDir) }
+            val b: () -> Unit = { println(buildDir) }
+            tasks.register("myTask") {
+                val c = a
+                val d = b
+                val e = Runnable { println(buildDir) }
+                val f = e
+                doLast {
+                    a
+                    b
+                    c
+                    d
+                    e
+                    f
+                    val g = Runnable { println(buildDir) }
+                    g
+                }
+            }
+            """.trimIndent()
+        }
+        importProject(false)
+
+        val warnings = file.getHighlights().filter { it.severity == HighlightSeverity.WARNING && !it.description.startsWith("[UNUSED_EXPRESSION]") }
+        assertThat(warnings).hasSize(10)
+        assertThat(warnings[0].text).isEqualTo("buildDir")
+        assertThat(warnings[0].description).startsWith("Cannot serialize Gradle script object references as these are not supported with the configuration cache.")
+        assertThat(warnings[0].startOffset).isEqualTo(27)
+        assertThat(warnings[0].endOffset).isEqualTo(35)
+
+        assertThat(warnings[1].text).isEqualTo("buildDir")
+        assertThat(warnings[1].description).startsWith("Cannot serialize Gradle script object references as these are not supported with the configuration cache.")
+        assertThat(warnings[1].startOffset).isEqualTo(69)
+        assertThat(warnings[1].endOffset).isEqualTo(77)
+
+        assertThat(warnings[2].text).isEqualTo("buildDir")
+        assertThat(warnings[2].description).startsWith("Cannot serialize Gradle script object references as these are not supported with the configuration cache.")
+        assertThat(warnings[2].startOffset).isEqualTo(167)
+        assertThat(warnings[2].endOffset).isEqualTo(175)
+
+        assertThat(warnings[3].text).isEqualTo("a")
+        assertThat(warnings[3].description).startsWith("Cannot serialize Gradle script object references as these are not supported with the configuration cache.")
+        assertThat(warnings[3].startOffset).isEqualTo(214)
+        assertThat(warnings[3].endOffset).isEqualTo(215)
+
+        assertThat(warnings[4].text).isEqualTo("b")
+        assertThat(warnings[4].description).startsWith("Cannot serialize Gradle script object references as these are not supported with the configuration cache.")
+        assertThat(warnings[4].startOffset).isEqualTo(224)
+        assertThat(warnings[4].endOffset).isEqualTo(225)
+
+        assertThat(warnings[5].text).isEqualTo("c")
+        assertThat(warnings[5].description).startsWith("Cannot serialize Gradle script object references as these are not supported with the configuration cache. At line: 1")
+        assertThat(warnings[5].startOffset).isEqualTo(234)
+        assertThat(warnings[5].endOffset).isEqualTo(235)
+
+        assertThat(warnings[6].text).isEqualTo("d")
+        assertThat(warnings[6].description).startsWith("Cannot serialize Gradle script object references as these are not supported with the configuration cache. At line: 2")
+        assertThat(warnings[6].startOffset).isEqualTo(244)
+        assertThat(warnings[6].endOffset).isEqualTo(245)
+
+        assertThat(warnings[7].text).isEqualTo("e")
+        assertThat(warnings[7].description).startsWith("Cannot serialize Gradle script object references as these are not supported with the configuration cache. At line: 6")
+        assertThat(warnings[7].startOffset).isEqualTo(254)
+        assertThat(warnings[7].endOffset).isEqualTo(255)
+
+        assertThat(warnings[8].text).isEqualTo("f")
+        assertThat(warnings[8].description).startsWith("Cannot serialize Gradle script object references as these are not supported with the configuration cache. At line: 6")
+        assertThat(warnings[8].startOffset).isEqualTo(264)
+        assertThat(warnings[8].endOffset).isEqualTo(265)
+
+        assertThat(warnings[9].text).isEqualTo("buildDir")
+        assertThat(warnings[9].description).startsWith("Cannot serialize Gradle script object references as these are not supported with the configuration cache.")
+        assertThat(warnings[9].startOffset).isEqualTo(301)
+        assertThat(warnings[9].endOffset).isEqualTo(309)
     }
 }
