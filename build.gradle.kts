@@ -30,7 +30,7 @@ repositories {
 }
 
 dependencies {
-    testImplementation("com.jetbrains.intellij.platform:external-system-test-framework:232.8660.185") {
+    testImplementation("com.jetbrains.intellij.platform:external-system-test-framework:232.10072.27") {
         isTransitive = false
     }
     testImplementation("org.assertj:assertj-core:3.24.2")
